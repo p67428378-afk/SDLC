@@ -1,0 +1,14 @@
+inputSet:
+  name: Build_SDLC_1784190179988-push-trigger-input-set
+  identifier: Build_SDLC_1784190179988pushtriggerinputset
+  orgIdentifier: default
+  projectIdentifier: SDLC
+  pipeline:
+    identifier: Build_SDLC_1784190179988
+    properties:
+      ci:
+        codebase:
+          build:
+            type: branch
+            spec:
+              branch: <+trigger.branch>
