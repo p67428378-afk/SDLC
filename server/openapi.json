@@ -1,0 +1,389 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DG Cluster Assortment Advisor API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/kpis": {
+      "get": {
+        "summary": "Read Kpis",
+        "operationId": "read_kpis_api_v1_kpis_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/skus/performance": {
+      "get": {
+        "summary": "Read Skus",
+        "operationId": "read_skus_api_v1_skus_performance_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort By"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort Order"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SKUResponse"
+                  },
+                  "title": "Response Read Skus Api V1 Skus Performance Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submit-assortment": {
+      "post": {
+        "summary": "Submit Assortment",
+        "operationId": "submit_assortment_api_v1_submit_assortment_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAssortmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitAssortmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChangeItem": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "sku_name": {
+            "type": "string",
+            "title": "Sku Name"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "sku_name",
+          "details"
+        ],
+        "title": "ChangeItem"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "KPIResponse": {
+        "properties": {
+          "sales_per_linear_ft": {
+            "type": "number",
+            "title": "Sales Per Linear Ft"
+          },
+          "private_brand_percentage": {
+            "type": "number",
+            "title": "Private Brand Percentage"
+          },
+          "in_stock_rate": {
+            "type": "number",
+            "title": "In Stock Rate"
+          },
+          "shelf_capacity_percentage": {
+            "type": "number",
+            "title": "Shelf Capacity Percentage"
+          },
+          "sales_growth_percentage": {
+            "type": "number",
+            "title": "Sales Growth Percentage"
+          },
+          "remaining_linear_ft": {
+            "type": "number",
+            "title": "Remaining Linear Ft"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sales_per_linear_ft",
+          "private_brand_percentage",
+          "in_stock_rate",
+          "shelf_capacity_percentage",
+          "sales_growth_percentage",
+          "remaining_linear_ft"
+        ],
+        "title": "KPIResponse"
+      },
+      "SKUResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "sku_name": {
+            "type": "string",
+            "title": "Sku Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "weekly_sales": {
+            "type": "number",
+            "title": "Weekly Sales"
+          },
+          "yoy_growth": {
+            "type": "number",
+            "title": "Yoy Growth"
+          },
+          "profit_margin": {
+            "type": "number",
+            "title": "Profit Margin"
+          },
+          "inventory_level": {
+            "type": "integer",
+            "title": "Inventory Level"
+          },
+          "is_private_brand": {
+            "type": "boolean",
+            "title": "Is Private Brand"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sku_name",
+          "category",
+          "weekly_sales",
+          "yoy_growth",
+          "profit_margin",
+          "inventory_level",
+          "is_private_brand",
+          "status"
+        ],
+        "title": "SKUResponse"
+      },
+      "SubmitAssortmentRequest": {
+        "properties": {
+          "scenario_name": {
+            "type": "string",
+            "title": "Scenario Name"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeItem"
+            },
+            "type": "array",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_name",
+          "changes"
+        ],
+        "title": "SubmitAssortmentRequest"
+      },
+      "SubmitAssortmentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "scenario_name": {
+            "type": "string",
+            "title": "Scenario Name"
+          },
+          "guardrails_passed": {
+            "type": "boolean",
+            "title": "Guardrails Passed"
+          },
+          "changes": {
+            "items": {},
+            "type": "array",
+            "title": "Changes"
+          },
+          "projected_sales_lift": {
+            "type": "number",
+            "title": "Projected Sales Lift"
+          },
+          "projected_brand_mix": {
+            "type": "number",
+            "title": "Projected Brand Mix"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "scenario_name",
+          "guardrails_passed",
+          "changes",
+          "projected_sales_lift",
+          "projected_brand_mix",
+          "submitted_at"
+        ],
+        "title": "SubmitAssortmentResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
