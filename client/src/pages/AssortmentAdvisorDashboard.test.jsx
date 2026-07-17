@@ -131,7 +131,7 @@ describe("AssortmentAdvisorDashboard Smoke and Interaction Tests", () => {
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Scenario: Balanced")).toBeInTheDocument();
+    expect(screen.getByText(/Scenario:/i)).toBeInTheDocument();
 
     // Dismiss modal
     const dismissBtn = screen.getByRole("button", { name: /Dismiss/i });

@@ -37,6 +37,8 @@ export default function SKUPerformanceTable({ skus, onSearch, onSort }) {
     }
   };
 
+  const safeSkus = Array.isArray(skus) ? skus : [];
+
   return (
     <div className="lg:w-3/5 elevation-1 rounded-lg flex flex-col overflow-hidden bg-surface-container-lowest">
       <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest z-10 shrink-0">
@@ -66,7 +68,7 @@ export default function SKUPerformanceTable({ skus, onSearch, onSort }) {
       </div>
       <div className="flex-1 overflow-auto relative">
         <table className="w-full text-left border-collapse min-w-[600px]">
-          <thead className="sticky top-0 bg-surface-container-low z-10 shadow-sm border-b border-outline-variant">
+          <thead class="sticky top-0 bg-surface-container-low z-10 shadow-sm border-b border-outline-variant">
             <tr>
               <th
                 className="p-3 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-1/3 cursor-pointer hover:bg-surface-container-high"
@@ -149,7 +151,7 @@ export default function SKUPerformanceTable({ skus, onSearch, onSort }) {
             </tr>
           </thead>
           <tbody className="font-data-tabular text-data-tabular text-on-surface">
-            {skus.map((sku) => (
+            {safeSkus.map((sku) => (
               <tr
                 key={sku.id}
                 className="border-b border-outline-variant hover:bg-[#F1F5F9] transition-colors group"
@@ -174,7 +176,7 @@ export default function SKUPerformanceTable({ skus, onSearch, onSort }) {
                   </div>
                 </td>
                 <td className="p-3 text-right font-medium">
-                  ${sku.weekly_sales.toLocaleString()}
+                  ${sku.weekly_sales?.toLocaleString() || "0"}
                 </td>
                 <td
                   className={`p-3 text-right ${sku.yoy_growth >= 0 ? "text-green-700" : "text-red-600"}`}

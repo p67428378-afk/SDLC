@@ -70,11 +70,11 @@ export default function AssortmentAdvisorDashboard() {
   useEffect(() => {
     fetchKPIs();
     fetchSKUs();
-    setScenarioActions(scenarioActionsMap[activeScenario]);
+    setScenarioActions(scenarioActionsMap[activeScenario] || []);
   }, []);
 
   useEffect(() => {
-    setScenarioActions(scenarioActionsMap[activeScenario]);
+    setScenarioActions(scenarioActionsMap[activeScenario] || []);
   }, [activeScenario]);
 
   const fetchKPIs = async () => {
@@ -89,18 +89,21 @@ export default function AssortmentAdvisorDashboard() {
   const fetchSKUs = async (search = "", sort_by = "", sort_order = "") => {
     try {
       const data = await getSKUs({ search, sort_by, sort_order });
-      setSkus(data);
-      setFilteredSkus(data);
+      const safeData = Array.isArray(data) ? data : [];
+      setSkus(safeData);
+      setFilteredSkus(safeData);
     } catch (err) {
       console.error("Error fetching SKUs:", err);
+      setSkus([]);
+      setFilteredSkus([]);
     }
   };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
-    // Client-side fallback filtering if API is slow or offline
-    const filtered = skus.filter((sku) =>
-      sku.sku_name.toLowerCase().includes(term.toLowerCase()),
+    const safeSkus = Array.isArray(skus) ? skus : [];
+    const filtered = safeSkus.filter((sku) =>
+      sku?.sku_name?.toLowerCase().includes(term.toLowerCase()),
     );
     setFilteredSkus(filtered);
   };
