@@ -1,0 +1,36 @@
+{
+  "name": "dg-cluster-assortment-advisor",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "axios": "1.7.2",
+    "lucide-react": "0.395.0",
+    "prop-types": "15.8.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "6.4.6",
+    "@testing-library/react": "16.0.0",
+    "@vitejs/plugin-react": "4.3.1",
+    "autoprefixer": "10.4.19",
+    "jsdom": "24.1.0",
+    "postcss": "8.4.38",
+    "tailwindcss": "3.4.4",
+    "vite": "5.3.1",
+    "vitest": "1.6.0",
+    "eslint": "^9.9.0",
+    "@eslint/js": "^9.9.0",
+    "globals": "^15.9.0",
+    "prettier": "^3.3.0",
+    "eslint-plugin-react": "^7.35.0"
+  }
+}
