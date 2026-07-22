@@ -3,20 +3,28 @@
 @tailwind utilities;
 
 body {
-  background-color: #f8fafc;
+  background-color: #090d16;
+  color: #ebe2cf;
   font-family: "Inter", sans-serif;
 }
 
-.data-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+.material-symbols-outlined.filled {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
-.table-header {
-  background-color: #f1f5f9;
-}
-
-.row-hover:hover {
-  background-color: #f8fafc;
+.card-base {
+  background-color: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
 }

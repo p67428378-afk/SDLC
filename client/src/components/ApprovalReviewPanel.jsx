@@ -11,17 +11,17 @@ export default function ApprovalReviewPanel({
     switch (action?.toUpperCase()) {
       case "GROW":
       case "ADD":
-        return "text-green-700";
+        return "text-[#10B981]";
       case "MAINTAIN":
       case "KEEP":
-        return "text-yellow-700";
+        return "text-[#3B82F6]";
       case "SWAP":
-        return "text-orange-600";
+        return "text-[#F59E0B]";
       case "REDUCE":
       case "REMOVE":
-        return "text-red-600";
+        return "text-[#EF4444]";
       default:
-        return "text-slate-700";
+        return "text-[#ebe2cf]";
     }
   };
 
@@ -34,125 +34,121 @@ export default function ApprovalReviewPanel({
     scenarioData?.guardrails?.private_brand_ok &&
     scenarioData?.guardrails?.shelf_capacity_ok;
 
-  return (
-    <div className="data-card p-md flex flex-col gap-md bg-[#F8FAFC] shadow-sm border border-slate-200 rounded-lg">
-      <h3 className="font-label-md text-label-md font-bold text-slate-800 uppercase border-b border-slate-200 pb-2 tracking-wider">
-        Approval Review —{" "}
-        {selectedScenario.charAt(0).toUpperCase() + selectedScenario.slice(1)}{" "}
-        Scenario
-      </h3>
+  // Count actions
+  const actionCounts = {
+    ADD: 0,
+    GROW: 0,
+    MAINTAIN: 0,
+    SWAP: 0,
+    REDUCE: 0,
+  };
 
-      {/* Proposed Actions */}
-      <div>
-        <span className="font-label-sm text-label-sm text-slate-500 uppercase mb-2 block font-bold tracking-wider">
-          Proposed Actions
-        </span>
-        {scenarioData?.sku_actions && scenarioData.sku_actions.length > 0 ? (
-          <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1.5">
-            {scenarioData.sku_actions.map((act, idx) => (
-              <li key={idx}>
-                <strong
-                  className={`${getActionColorClass(act.action)} uppercase mr-1`}
-                >
-                  {act.action}
-                </strong>
-                <span className="font-mono text-xs text-slate-500 mr-1">
-                  [{act.sku_id}]
-                </span>
-                {act.name || `SKU Action`}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-slate-500 italic">
-            No actions proposed for this scenario.
-          </p>
-        )}
+  if (scenarioData?.sku_actions) {
+    scenarioData.sku_actions.forEach((act) => {
+      const action = act.action?.toUpperCase();
+      if (actionCounts[action] !== undefined) {
+        actionCounts[action]++;
+      } else {
+        actionCounts[action] = (actionCounts[action] || 0) + 1;
+      }
+    });
+  }
+
+  return (
+    <div className="card-base p-6 shadow-xl shadow-black/40 flex-1 flex flex-col gap-4">
+      <h2 className="text-lg font-bold text-[#ebe2cf] flex items-center gap-2">
+        <span className="material-symbols-outlined text-[#ffd100]">rule</span>
+        Approval Review
+      </h2>
+
+      {/* SKU Action Summary */}
+      <div className="bg-[#1F2937]/50 rounded-lg p-4 border border-[#1F2937]/50">
+        <h4 className="text-xs font-semibold text-[#d1c6ab] uppercase tracking-wider mb-3">
+          SKU Action Summary
+        </h4>
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex-1 bg-[#111827] border border-[#1F2937] rounded p-3 text-center">
+            <div className="text-2xl font-bold text-[#10B981] mb-1">
+              {actionCounts.GROW + actionCounts.ADD}
+            </div>
+            <div className="text-[10px] font-semibold text-[#d1c6ab]">GROW</div>
+          </div>
+          <div className="flex-1 bg-[#111827] border border-[#1F2937] rounded p-3 text-center">
+            <div className="text-2xl font-bold text-[#F59E0B] mb-1">
+              {actionCounts.SWAP}
+            </div>
+            <div className="text-[10px] font-semibold text-[#d1c6ab]">SWAP</div>
+          </div>
+          <div className="flex-1 bg-[#111827] border border-[#1F2937] rounded p-3 text-center">
+            <div className="text-2xl font-bold text-[#EF4444] mb-1">
+              {actionCounts.REDUCE}
+            </div>
+            <div className="text-[10px] font-semibold text-[#d1c6ab]">
+              REDUCE
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Guardrail Checks */}
-      <div>
-        <span className="font-label-sm text-label-sm text-slate-500 uppercase mb-2 block font-bold tracking-wider">
-          Guardrail Checks
-        </span>
-        <div className="flex flex-col gap-2 bg-white p-3 rounded-lg border border-slate-100">
+      {/* Guardrail Status */}
+      <div className="flex-1">
+        <h4 className="text-xs font-semibold text-[#d1c6ab] uppercase tracking-wider mb-3">
+          Guardrail Status
+        </h4>
+        <div className="flex flex-col gap-3">
           {/* Private Brand Mix */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600 font-medium">
-              PB Mix ({formatPercent(scenarioData?.private_brand_mix)})
-            </span>
-            <div className="flex items-center gap-1">
-              {scenarioData?.guardrails?.private_brand_ok ? (
-                <span className="flex items-center gap-1 text-green-600 font-semibold text-xs">
-                  <span className="material-symbols-outlined text-[18px] font-bold">
-                    check_circle
-                  </span>
-                  Passed (&gt;=20%)
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-red-600 font-semibold text-xs">
-                  <span className="material-symbols-outlined text-[18px] font-bold">
-                    cancel
-                  </span>
-                  Failed (&lt;20%)
-                </span>
-              )}
+          <div
+            className={`flex items-center justify-between p-3 rounded border ${
+              scenarioData?.guardrails?.private_brand_ok
+                ? "bg-[rgba(16,185,129,0.1)] border-[#10B981]/20 text-[#10B981]"
+                : "bg-[rgba(239,68,68,0.1)] border-[#EF4444]/20 text-[#EF4444]"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined">
+                {scenarioData?.guardrails?.private_brand_ok
+                  ? "check_circle"
+                  : "cancel"}
+              </span>
+              <span className="text-sm font-medium text-[#ebe2cf]">
+                Private Brand Mix &gt; 20%
+              </span>
             </div>
+            <span className="font-mono text-xs font-bold">
+              {scenarioData?.guardrails?.private_brand_ok ? "Pass" : "Fail"} (
+              {formatPercent(scenarioData?.private_brand_mix)})
+            </span>
           </div>
 
           {/* Shelf Capacity */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600 font-medium">
-              Capacity ({formatPercent(scenarioData?.shelf_capacity)})
-            </span>
-            <div className="flex items-center gap-1">
-              {scenarioData?.guardrails?.shelf_capacity_ok ? (
-                <span className="flex items-center gap-1 text-green-600 font-semibold text-xs">
-                  <span className="material-symbols-outlined text-[18px] font-bold">
-                    check_circle
-                  </span>
-                  Passed (&gt;=85%)
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-red-600 font-semibold text-xs">
-                  <span className="material-symbols-outlined text-[18px] font-bold">
-                    cancel
-                  </span>
-                  Failed (&lt;85%)
-                </span>
-              )}
+          <div
+            className={`flex items-center justify-between p-3 rounded border ${
+              scenarioData?.guardrails?.shelf_capacity_ok
+                ? "bg-[rgba(16,185,129,0.1)] border-[#10B981]/20 text-[#10B981]"
+                : "bg-[rgba(239,68,68,0.1)] border-[#EF4444]/20 text-[#EF4444]"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined">
+                {scenarioData?.guardrails?.shelf_capacity_ok
+                  ? "check_circle"
+                  : "cancel"}
+              </span>
+              <span className="text-sm font-medium text-[#ebe2cf]">
+                Shelf Capacity &lt; 95%
+              </span>
             </div>
-          </div>
-
-          {/* Proj. In-Stock */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600 font-medium">
-              Proj. In-Stock ({formatPercent(scenarioData?.in_stock_rate)})
+            <span className="font-mono text-xs font-bold">
+              {scenarioData?.guardrails?.shelf_capacity_ok ? "Pass" : "Fail"} (
+              {formatPercent(scenarioData?.shelf_capacity)})
             </span>
-            <div className="flex items-center gap-1">
-              {scenarioData?.in_stock_rate >= 95 ? (
-                <span className="flex items-center gap-1 text-green-600 font-semibold text-xs">
-                  <span className="material-symbols-outlined text-[18px] font-bold">
-                    check_circle
-                  </span>
-                  Passed (&gt;=95%)
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-red-600 font-semibold text-xs">
-                  <span className="material-symbols-outlined text-[18px] font-bold">
-                    cancel
-                  </span>
-                  Failed (&lt;95%)
-                </span>
-              )}
-            </div>
           </div>
         </div>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-medium flex items-start gap-2">
+        <div className="bg-[rgba(239,68,68,0.1)] border border-[#EF4444]/30 text-[#EF4444] p-3 rounded-lg text-xs font-medium flex items-start gap-2">
           <span className="material-symbols-outlined text-sm font-bold mt-0.5">
             error
           </span>
@@ -167,31 +163,27 @@ export default function ApprovalReviewPanel({
       <button
         onClick={onSubmit}
         disabled={submitting || !isGuardrailPassed}
-        className={`w-full font-bold py-3 rounded-lg shadow-sm transition-all mt-auto flex items-center justify-center gap-2 ${
+        className={`w-full py-4 px-6 font-bold rounded-lg transition-all flex items-center justify-center gap-3 uppercase tracking-wide ${
           isGuardrailPassed
-            ? "bg-[#FFD100] hover:bg-[#EDC200] text-[#1E293B] active:scale-[0.98]"
-            : "bg-slate-200 text-slate-400 cursor-not-allowed"
+            ? "bg-[#ffd100] hover:bg-[#ffe07f] text-black shadow-[0_4px_14px_0_rgba(255,209,0,0.39)] hover:shadow-[0_6px_20px_rgba(255,209,0,0.23)] active:scale-[0.98]"
+            : "bg-[#1F2937] text-[#d1c6ab] cursor-not-allowed"
         }`}
       >
         {submitting ? (
           <>
-            <span className="animate-spin h-4 w-4 border-2 border-slate-800 border-t-transparent rounded-full"></span>
-            Submitting Assortment Changes...
+            <span className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></span>
+            Submitting Assortment Plan...
           </>
         ) : (
           <>
-            <span className="material-symbols-outlined text-lg font-bold">
-              send
-            </span>
-            Submit Assortment Changes
+            Submit Assortment Plan
+            <span className="material-symbols-outlined font-bold">send</span>
           </>
         )}
       </button>
-      {!isGuardrailPassed && (
-        <p className="text-[11px] text-red-500 text-center font-medium mt-1">
-          ⚠️ Cannot submit: Guardrail checks must pass.
-        </p>
-      )}
+      <p className="text-center text-xs text-[#d1c6ab] mt-1">
+        This action will update 4 stores in the Small Town Value cluster.
+      </p>
     </div>
   );
 }

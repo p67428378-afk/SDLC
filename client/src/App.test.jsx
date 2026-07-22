@@ -75,12 +75,12 @@ describe("DG Cluster Assortment Advisor App", () => {
       screen.getByText("DG Cluster Assortment Advisor"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Snacks Category — Small Town Value Cluster"),
+      screen.getByText("Small Town Value Cluster — Snacks Category"),
     ).toBeInTheDocument();
 
     // Check sidebar links
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Scenario Planner")).toBeInTheDocument();
+    expect(screen.getByText("Scenario Builder")).toBeInTheDocument();
   });
 
   it("fetches and displays KPI data", async () => {

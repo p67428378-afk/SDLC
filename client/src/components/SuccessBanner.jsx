@@ -4,23 +4,27 @@ export default function SuccessBanner({ auditTrail, onClose }) {
   if (!auditTrail) return null;
 
   return (
-    <div className="bg-[#DCFCE7] border border-[#16A34A] rounded-lg p-md flex flex-col md:flex-row md:items-center justify-between gap-sm shadow-sm mb-lg transition-all animate-fadeIn">
-      <div className="flex items-center gap-sm">
-        <span className="material-symbols-outlined text-[#16A34A] font-bold">
+    <div className="w-full bg-[#10B981] text-black px-6 py-4 rounded-lg flex items-center justify-between gap-3 shadow-lg shadow-black/20 font-medium transition-all animate-fadeIn">
+      <div className="flex items-center gap-3">
+        <span className="material-symbols-outlined text-black filled">
           check_circle
         </span>
-        <span className="font-body-md text-body-md text-slate-800">
-          ✅ Assortment changes submitted successfully.
-          <strong className="ml-1">Audit ID:</strong> {auditTrail.audit_id}.
-          <strong className="ml-2">Approved by:</strong>{" "}
-          {auditTrail.submitted_by}
-          <strong className="ml-2">on:</strong>{" "}
-          {new Date(auditTrail.submitted_at).toLocaleString()}.
-        </span>
+        <div className="flex-1 text-sm">
+          <span className="font-bold">
+            ✓ Assortment Plan Submitted Successfully!
+          </span>{" "}
+          Audit ID: {auditTrail.audit_id} | Submitted by:{" "}
+          {auditTrail.submitted_by} | Timestamp:{" "}
+          {new Date(auditTrail.submitted_at)
+            .toISOString()
+            .replace("T", " ")
+            .substring(0, 19)}{" "}
+          UTC
+        </div>
       </div>
       <button
         onClick={onClose}
-        className="text-slate-500 hover:text-slate-800 font-bold text-sm px-2 py-1 rounded hover:bg-green-100 transition-colors self-end md:self-auto"
+        className="text-black/70 hover:text-black font-bold text-sm px-2 py-1 rounded hover:bg-black/10 transition-colors"
       >
         Dismiss
       </button>

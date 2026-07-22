@@ -34,14 +34,14 @@ export default function ScenarioSelector({
   ];
 
   return (
-    <div className="flex flex-col gap-sm">
-      <h2 className="font-headline-md text-headline-md text-slate-800 font-bold">
+    <div className="card-base p-6 shadow-xl shadow-black/40 flex flex-col gap-4">
+      <h2 className="text-lg font-bold text-[#ebe2cf] flex items-center gap-2">
+        <span className="material-symbols-outlined text-[#ffd100]">tune</span>
         Assortment Scenario Selector
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
+      <div className="flex flex-col gap-3">
         {scenarios.map((sc) => {
           const isSelected = selectedScenario === sc.id;
-          // If we have real API data for this scenario, use it, otherwise fallback to static
           const displayLift =
             scenarioData && isSelected
               ? `+${scenarioData.projected_sales_lift.toFixed(1)}%`
@@ -55,40 +55,41 @@ export default function ScenarioSelector({
             <div
               key={sc.id}
               onClick={() => !loading && onSelectScenario(sc.id)}
-              className={`data-card p-md cursor-pointer transition-all relative flex flex-col justify-between min-h-[120px] ${
+              className={`rounded-lg p-4 cursor-pointer transition-all relative flex items-start gap-3 ${
                 isSelected
-                  ? "border-2 border-[#FFD100] bg-white shadow-md scale-[1.02]"
-                  : "hover:border-slate-300 bg-white hover:shadow-sm"
+                  ? "border-2 border-[#ffd100] bg-[#ffd100]/5 shadow-[0_0_15px_rgba(255,209,0,0.1)]"
+                  : "border border-[#1F2937] hover:bg-[#1F2937]/50"
               } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSelected && (
-                <div className="absolute top-2 right-2 h-5 w-5 bg-[#FFD100] rounded-full flex items-center justify-center shadow-sm">
-                  <span className="material-symbols-outlined text-[14px] text-[#1E293B] font-bold">
-                    check
+                <div className="absolute top-3 right-3 text-[#ffd100]">
+                  <span className="material-symbols-outlined filled">
+                    check_circle
                   </span>
                 </div>
               )}
-              <div>
-                <span
-                  className={`font-label-md text-label-md font-bold block mb-1 ${isSelected ? "text-slate-900" : "text-slate-700"}`}
+              <div
+                className={`mt-1 w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center ${
+                  isSelected ? "border-[#ffd100]" : "border-[#d1c6ab]"
+                }`}
+              >
+                {isSelected && (
+                  <div className="w-2 h-2 rounded-full bg-[#ffd100]"></div>
+                )}
+              </div>
+              <div className="pr-6 flex-1">
+                <h4
+                  className={`text-sm font-bold ${isSelected ? "text-[#ffd100]" : "text-[#ebe2cf]"}`}
                 >
-                  {sc.name}
-                </span>
-                <p className="text-xs text-slate-500 leading-relaxed mb-2">
+                  {sc.name} {sc.id === "balanced" && "(Recommended)"}
+                </h4>
+                <p className="text-xs text-[#d1c6ab] mt-1 leading-relaxed">
                   {sc.description}
                 </p>
-              </div>
-              <div className="flex justify-between text-sm font-semibold border-t border-slate-100 pt-2 mt-2">
-                <span
-                  className={isSelected ? "text-slate-800" : "text-slate-500"}
-                >
-                  Lift: {displayLift}
-                </span>
-                <span
-                  className={isSelected ? "text-slate-800" : "text-slate-500"}
-                >
-                  Cap: {displayCapacity}
-                </span>
+                <div className="flex gap-4 text-xs font-semibold mt-2 text-[#d1c6ab]">
+                  <span>Lift: {displayLift}</span>
+                  <span>Cap: {displayCapacity}</span>
+                </div>
               </div>
             </div>
           );

@@ -100,20 +100,18 @@ export default function DashboardPage() {
     setAuditTrail(null);
   };
 
-  const isPageLoading = loadingKpis || loadingSkus || loadingScenario;
-
   return (
-    <div className="flex-1 p-lg flex flex-col gap-lg max-w-7xl mx-auto w-full">
+    <div className="flex-1 flex flex-col gap-6 max-w-7xl mx-auto w-full">
       {/* Success Banner */}
       <SuccessBanner auditTrail={auditTrail} onClose={handleDismissSuccess} />
 
       {/* KPI Row */}
       {loadingKpis ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-lg animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 animate-pulse">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="data-card h-28 bg-slate-100 rounded-lg"
+              className="card-base h-28 bg-[#111827] border border-[#1F2937] rounded-lg"
             ></div>
           ))}
         </div>
@@ -122,18 +120,18 @@ export default function DashboardPage() {
       )}
 
       {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (8-col) */}
-        <div className="lg:col-span-8 flex flex-col gap-lg">
+        <div className="lg:col-span-8 flex flex-col gap-6">
           {loadingSkus ? (
-            <div className="data-card h-96 bg-slate-100 rounded-lg animate-pulse"></div>
+            <div className="card-base h-96 bg-[#111827] border border-[#1F2937] rounded-lg animate-pulse"></div>
           ) : (
             <SkuPerformanceTable skus={skus} />
           )}
         </div>
 
         {/* Right Column (4-col) */}
-        <div className="lg:col-span-4 flex flex-col gap-lg">
+        <div className="lg:col-span-4 flex flex-col gap-6">
           <ScenarioSelector
             selectedScenario={selectedScenario}
             onSelectScenario={handleSelectScenario}
@@ -142,7 +140,7 @@ export default function DashboardPage() {
           />
 
           {loadingScenario ? (
-            <div className="data-card h-80 bg-slate-100 rounded-lg animate-pulse"></div>
+            <div className="card-base h-80 bg-[#111827] border border-[#1F2937] rounded-lg animate-pulse"></div>
           ) : (
             <ApprovalReviewPanel
               selectedScenario={selectedScenario}
