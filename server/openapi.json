@@ -1,0 +1,418 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DG Cluster Assortment Advisor API",
+    "description": "API for DG Cluster Assortment Advisor",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/assortment/kpis": {
+      "get": {
+        "summary": "Get Kpis",
+        "operationId": "get_kpis_api_v1_assortment_kpis_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KPIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assortment/skus": {
+      "get": {
+        "summary": "Get Skus",
+        "operationId": "get_skus_api_v1_assortment_skus_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SKUResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Skus Api V1 Assortment Skus Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assortment/scenario/{name}": {
+      "get": {
+        "summary": "Get Scenario",
+        "operationId": "get_scenario_api_v1_assortment_scenario__name__get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assortment/submit": {
+      "post": {
+        "summary": "Submit Assortment",
+        "operationId": "submit_assortment_api_v1_assortment_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GuardrailSchema": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status",
+          "message"
+        ],
+        "title": "GuardrailSchema"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "KPIResponse": {
+        "properties": {
+          "sales_per_linear_ft": {
+            "type": "number",
+            "title": "Sales Per Linear Ft"
+          },
+          "private_brand_pct": {
+            "type": "number",
+            "title": "Private Brand Pct"
+          },
+          "in_stock_rate": {
+            "type": "number",
+            "title": "In Stock Rate"
+          },
+          "shelf_capacity": {
+            "type": "number",
+            "title": "Shelf Capacity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sales_per_linear_ft",
+          "private_brand_pct",
+          "in_stock_rate",
+          "shelf_capacity"
+        ],
+        "title": "KPIResponse"
+      },
+      "SKUResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "sku_code": {
+            "type": "string",
+            "title": "Sku Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand"
+          },
+          "weekly_sales": {
+            "type": "number",
+            "title": "Weekly Sales"
+          },
+          "units_sold": {
+            "type": "integer",
+            "title": "Units Sold"
+          },
+          "profit_margin": {
+            "type": "number",
+            "title": "Profit Margin"
+          },
+          "shelf_space": {
+            "type": "number",
+            "title": "Shelf Space"
+          },
+          "in_stock_rate": {
+            "type": "number",
+            "title": "In Stock Rate"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sku_code",
+          "name",
+          "brand",
+          "weekly_sales",
+          "units_sold",
+          "profit_margin",
+          "shelf_space",
+          "in_stock_rate",
+          "status"
+        ],
+        "title": "SKUResponse"
+      },
+      "ScenarioResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "projected_sales_impact": {
+            "type": "number",
+            "title": "Projected Sales Impact"
+          },
+          "projected_brand_mix": {
+            "type": "number",
+            "title": "Projected Brand Mix"
+          },
+          "sku_actions": {
+            "items": {
+              "$ref": "#/components/schemas/SkuActionSchema"
+            },
+            "type": "array",
+            "title": "Sku Actions"
+          },
+          "guardrails": {
+            "items": {
+              "$ref": "#/components/schemas/GuardrailSchema"
+            },
+            "type": "array",
+            "title": "Guardrails"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "projected_sales_impact",
+          "projected_brand_mix",
+          "sku_actions",
+          "guardrails"
+        ],
+        "title": "ScenarioResponse"
+      },
+      "SkuActionSchema": {
+        "properties": {
+          "sku_code": {
+            "type": "string",
+            "title": "Sku Code"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sku_code",
+          "action"
+        ],
+        "title": "SkuActionSchema"
+      },
+      "SubmitRequest": {
+        "properties": {
+          "scenario_name": {
+            "type": "string",
+            "title": "Scenario Name"
+          },
+          "sku_actions": {
+            "items": {
+              "$ref": "#/components/schemas/SkuActionSchema"
+            },
+            "type": "array",
+            "title": "Sku Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_name",
+          "sku_actions"
+        ],
+        "title": "SubmitRequest"
+      },
+      "SubmitResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "scenario_name": {
+            "type": "string",
+            "title": "Scenario Name"
+          },
+          "sku_actions": {
+            "items": {
+              "$ref": "#/components/schemas/SkuActionSchema"
+            },
+            "type": "array",
+            "title": "Sku Actions"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          },
+          "transaction_id": {
+            "type": "string",
+            "title": "Transaction Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "message",
+          "scenario_name",
+          "sku_actions",
+          "submitted_at",
+          "transaction_id",
+          "user_id"
+        ],
+        "title": "SubmitResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

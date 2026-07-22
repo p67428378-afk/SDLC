@@ -1,0 +1,136 @@
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+.fuse_hidden*
+.Trash-*
+
+# Secrets & credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+secret.json
+secrets.json
+credentials.json
+service-account*.json
+*serviceaccount*.json
+token.json
+oauth_token
+
+# IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# Python — bytecode & packaging
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv/
+.python-version
+
+# Testing & coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+pytestdebug.log
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Misc Python tooling
+pip-log.txt
+Pipfile.lock
+celerybeat-schedule
+celerybeat.pid
+
+# Build output
+build/
+dist/
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+test.db
+dump.rdb
+*.rdb
+
+# Docker / Cloud
+docker-compose.override.yml
+.dockerignore
+.gcloudignore
+application_default_credentials.json
+
+# Agent-internal files
+.backend_validated
+.project_file_plan.json
+test_acceptance_qa.py
+
+# Miscellaneous
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.patch
+.scratch/
+scratch/
+tmp/
+temp/
+*.log
+logs/
