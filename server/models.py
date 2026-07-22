@@ -1,20 +1,32 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Date, Numeric, Integer, ForeignKey, DateTime, Text, JSON
+from sqlalchemy import (
+    Column,
+    String,
+    Date,
+    Numeric,
+    Integer,
+    ForeignKey,
+    DateTime,
+    Text,
+    JSON,
+)
 from sqlalchemy.orm import relationship
 from server.database import Base
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
+
 class GUID(TypeDecorator):
     """Platform-independent GUID type.
     Uses PostgreSQL's UUID type, otherwise uses CHAR(36), storing as string.
     """
+
     impl = CHAR
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(PG_UUID(as_uuid=True))
         else:
             return dialect.type_descriptor(CHAR(36))
@@ -22,7 +34,7 @@ class GUID(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return value
-        elif dialect.name == 'postgresql':
+        elif dialect.name == "postgresql":
             return value
         else:
             if isinstance(value, uuid.UUID):
@@ -37,6 +49,7 @@ class GUID(TypeDecorator):
             value = uuid.UUID(value)
         return value
 
+
 class Product(Base):
     __tablename__ = "products"
 
@@ -46,16 +59,23 @@ class Product(Base):
     brand = Column(String, nullable=False)
     category = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     # Relationship
-    performance_metrics = relationship("PerformanceMetric", back_populates="product", cascade="all, delete-orphan")
+    performance_metrics = relationship(
+        "PerformanceMetric", back_populates="product", cascade="all, delete-orphan"
+    )
+
 
 class PerformanceMetric(Base):
     __tablename__ = "performance_metrics"
 
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    product_id = Column(GUID, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(
+        GUID, ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+    )
     date = Column(Date, nullable=False)
     sales = Column(Numeric, nullable=False)
     units_sold = Column(Integer, nullable=False)
@@ -66,6 +86,7 @@ class PerformanceMetric(Base):
     # Relationship
     product = relationship("Product", back_populates="performance_metrics")
 
+
 class Scenario(Base):
     __tablename__ = "scenarios"
 
@@ -74,7 +95,10 @@ class Scenario(Base):
     rules = Column(JSON, nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
 
 class AssortmentSubmission(Base):
     __tablename__ = "assortment_submissions"

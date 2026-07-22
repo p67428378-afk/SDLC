@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import os
 
 from server.config import settings
 from server.database import init_db, seed_data, SessionLocal
 from server.api.endpoints import router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,11 +18,12 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
 
+
 app = FastAPI(
     title="DG Cluster Assortment Advisor API",
     description="Decision-support tool for Dollar General category managers",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS Middleware
@@ -37,6 +38,7 @@ app.add_middleware(
 
 # Include router
 app.include_router(router)
+
 
 @app.get("/")
 def read_root():

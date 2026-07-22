@@ -1,10 +1,13 @@
-import pytest
 from fastapi.testclient import TestClient
+
 
 def test_read_root(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to the DG Cluster Assortment Advisor API"}
+    assert response.json() == {
+        "message": "Welcome to the DG Cluster Assortment Advisor API"
+    }
+
 
 def test_get_kpis(client: TestClient):
     response = client.get("/api/v1/assortment/kpis")
@@ -16,6 +19,7 @@ def test_get_kpis(client: TestClient):
     assert "sales_per_linear_ft" in data
     assert "shelf_capacity_utilization" in data
     assert data["private_brand_pct"] == 22.0
+
 
 def test_get_skus(client: TestClient):
     response = client.get("/api/v1/assortment/skus")
@@ -34,6 +38,7 @@ def test_get_skus(client: TestClient):
     assert "in_stock_rate" in first_sku
     assert "status" in first_sku
 
+
 def test_get_scenario_success(client: TestClient):
     response = client.get("/api/v1/assortment/scenarios/balanced")
     assert response.status_code == 200
@@ -46,18 +51,20 @@ def test_get_scenario_success(client: TestClient):
     assert data["guardrails"]["shelf_capacity_ok"] is True
     assert len(data["sku_actions"]) > 0
 
+
 def test_get_scenario_not_found(client: TestClient):
     response = client.get("/api/v1/assortment/scenarios/nonexistent")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
+
 
 def test_submit_success(client: TestClient):
     payload = {
         "scenario_name": "balanced",
         "sku_actions": [
             {"sku_id": "SKU-101", "action": "GROW"},
-            {"sku_id": "SKU-205", "action": "MAINTAIN"}
-        ]
+            {"sku_id": "SKU-205", "action": "MAINTAIN"},
+        ],
     }
     response = client.post("/api/v1/assortment/submit", json=payload)
     assert response.status_code == 200
@@ -67,23 +74,22 @@ def test_submit_success(client: TestClient):
     assert "submitted_at" in data
     assert data["submitted_by"] == "user@example.com"
 
+
 def test_submit_guardrail_failure(client: TestClient):
     # Aggressive scenario has private_brand_mix = 19.5% which is < 20%
     payload = {
         "scenario_name": "aggressive",
         "sku_actions": [
             {"sku_id": "SKU-101", "action": "GROW"},
-            {"sku_id": "SKU-205", "action": "REDUCE"}
-        ]
+            {"sku_id": "SKU-205", "action": "REDUCE"},
+        ],
     }
     response = client.post("/api/v1/assortment/submit", json=payload)
     assert response.status_code == 400
     assert "Guardrail validation failed" in response.json()["detail"]
 
+
 def test_submit_not_found(client: TestClient):
-    payload = {
-        "scenario_name": "nonexistent",
-        "sku_actions": []
-    }
+    payload = {"scenario_name": "nonexistent", "sku_actions": []}
     response = client.post("/api/v1/assortment/submit", json=payload)
     assert response.status_code == 404
