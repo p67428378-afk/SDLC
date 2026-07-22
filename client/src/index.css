@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #f8fafc;
+  font-family: "Inter", sans-serif;
+}
+
+.data-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.table-header {
+  background-color: #f1f5f9;
+}
+
+.row-hover:hover {
+  background-color: #f8fafc;
+}
