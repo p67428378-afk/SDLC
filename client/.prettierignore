@@ -1,0 +1,10 @@
+# AUTO-MANAGED — keep prettier off generated/vendored files.
+node_modules/
+dist/
+build/
+coverage/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+*.min.js
+*.min.css

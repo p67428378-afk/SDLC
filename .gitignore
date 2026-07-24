@@ -134,3 +134,7 @@ tmp/
 temp/
 *.log
 logs/
+
+# Frontend build artifacts (auto-added by Frontend Agent)
+node_modules/
+client/node_modules/
