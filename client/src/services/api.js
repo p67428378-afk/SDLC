@@ -105,10 +105,24 @@ export const adminAPI = {
     });
     return response.data;
   },
+  exportAuditTrail: async (params = {}) => {
+    const response = await api.get("/api/v1/banking/admin/audit-trail/export", {
+      params: { ...params, format: "csv" },
+      responseType: "blob",
+    });
+    return response.data;
+  },
   getFraudAlerts: async (params = {}) => {
     const response = await api.get("/api/v1/banking/admin/fraud-alerts", {
       params,
     });
+    return response.data;
+  },
+  updateFraudAlert: async (alertId, data) => {
+    const response = await api.patch(
+      `/api/v1/banking/admin/fraud-alerts/${alertId}`,
+      data,
+    );
     return response.data;
   },
   suspendAccount: async (accountId, reason) => {
@@ -118,8 +132,36 @@ export const adminAPI = {
     );
     return response.data;
   },
+  reactivateAccount: async (accountId, reason) => {
+    const response = await api.post(
+      `/api/v1/banking/admin/accounts/${accountId}/reactivate`,
+      { reason },
+    );
+    return response.data;
+  },
+  closeAccount: async (accountId, reason) => {
+    const response = await api.post(
+      `/api/v1/banking/admin/accounts/${accountId}/close`,
+      { reason },
+    );
+    return response.data;
+  },
   verifyAuditTrail: async () => {
     const response = await api.get("/api/v1/banking/admin/audit-trail/verify");
+    return response.data;
+  },
+  getCustomerDetail: async (userId) => {
+    const response = await api.get(`/api/v1/banking/admin/customers/${userId}`);
+    return response.data;
+  },
+  getAccountDetail: async (accountId) => {
+    const response = await api.get(
+      `/api/v1/banking/admin/accounts/${accountId}`,
+    );
+    return response.data;
+  },
+  getAdminSummary: async () => {
+    const response = await api.get("/api/v1/banking/admin/summary");
     return response.data;
   },
 };

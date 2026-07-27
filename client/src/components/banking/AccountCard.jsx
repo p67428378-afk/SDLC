@@ -6,6 +6,10 @@ export default function AccountCard({ account, onSelect, isSelected }) {
     ? "bg-gradient-to-br from-slate-600 to-slate-900"
     : "bg-gradient-to-br from-indigo-600 to-slate-900";
 
+  const maskedAccountNumber = account.account_number
+    ? `•••• ${account.account_number.slice(-4)}`
+    : "";
+
   return (
     <div
       onClick={() => onSelect && onSelect(account)}
@@ -23,7 +27,7 @@ export default function AccountCard({ account, onSelect, isSelected }) {
           </h3>
           <div className="flex items-center gap-2">
             <span className="bg-white/20 px-2 py-1 rounded text-xs font-mono tracking-widest">
-              {account.account_number}
+              {maskedAccountNumber}
             </span>
             <span
               className={`text-[10px] uppercase px-2 py-0.5 rounded font-bold border ${

@@ -86,8 +86,8 @@ export default function TransferForm({ accounts, onSubmit, loading }) {
           <option value="">Select Account</option>
           {accounts.map((acc) => (
             <option key={acc.id} value={acc.id}>
-              {acc.account_type} ({acc.account_number}) - Balance: $
-              {acc.balance.toFixed(2)}
+              {acc.account_type} (•••• {acc.account_number.slice(-4)}) -
+              Balance: ${acc.balance.toFixed(2)}
             </option>
           ))}
         </select>
