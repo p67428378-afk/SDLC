@@ -582,6 +582,22 @@
               ],
               "title": "End Date"
             }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
           }
         ],
         "responses": {
@@ -867,6 +883,366 @@
         }
       }
     },
+    "/api/v1/banking/admin/audit-trail/export": {
+      "get": {
+        "summary": "Export Audit Trail",
+        "operationId": "export_audit_trail_api_v1_banking_admin_audit_trail_export_get",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/fraud-alerts/{alertId}": {
+      "patch": {
+        "summary": "Update Fraud Alert Endpoint",
+        "operationId": "update_fraud_alert_endpoint_api_v1_banking_admin_fraud_alerts__alertId__patch",
+        "parameters": [
+          {
+            "name": "alertId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Alertid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudAlertUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FraudAlertResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/customers/{userId}": {
+      "get": {
+        "summary": "Get Customer Detail",
+        "operationId": "get_customer_detail_api_v1_banking_admin_customers__userId__get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/accounts/{accountId}": {
+      "get": {
+        "summary": "Get Admin Account Detail",
+        "operationId": "get_admin_account_detail_api_v1_banking_admin_accounts__accountId__get",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Accountid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/accounts/{accountId}/reactivate": {
+      "post": {
+        "summary": "Reactivate Customer Account",
+        "operationId": "reactivate_customer_account_api_v1_banking_admin_accounts__accountId__reactivate_post",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Accountid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactivateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuspendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/accounts/{accountId}/close": {
+      "post": {
+        "summary": "Close Customer Account",
+        "operationId": "close_customer_account_api_v1_banking_admin_accounts__accountId__close_post",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Accountid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuspendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/summary": {
+      "get": {
+        "summary": "Get Admin Summary",
+        "operationId": "get_admin_summary_api_v1_banking_admin_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -886,6 +1262,30 @@
   },
   "components": {
     "schemas": {
+      "AccountDetailResponse": {
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountResponse"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "recent_transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionResponse"
+            },
+            "type": "array",
+            "title": "Recent Transactions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account",
+          "owner",
+          "recent_transactions"
+        ],
+        "title": "AccountDetailResponse"
+      },
       "AccountResponse": {
         "properties": {
           "id": {
@@ -929,6 +1329,39 @@
           "created_at"
         ],
         "title": "AccountResponse"
+      },
+      "AdminSummaryResponse": {
+        "properties": {
+          "total_customers": {
+            "type": "integer",
+            "title": "Total Customers"
+          },
+          "open_fraud_alerts": {
+            "type": "integer",
+            "title": "Open Fraud Alerts"
+          },
+          "suspended_accounts": {
+            "type": "integer",
+            "title": "Suspended Accounts"
+          },
+          "transactions_24h": {
+            "type": "integer",
+            "title": "Transactions 24H"
+          },
+          "audit_chain_intact": {
+            "type": "boolean",
+            "title": "Audit Chain Intact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_customers",
+          "open_fraud_alerts",
+          "suspended_accounts",
+          "transactions_24h",
+          "audit_chain_intact"
+        ],
+        "title": "AdminSummaryResponse"
       },
       "AuditLogResponse": {
         "properties": {
@@ -1045,6 +1478,55 @@
         ],
         "title": "AuditTrailVerifyResponse"
       },
+      "CloseRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "CloseRequest"
+      },
+      "CustomerDetailResponse": {
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountResponse"
+            },
+            "type": "array",
+            "title": "Accounts"
+          },
+          "recent_transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionResponse"
+            },
+            "type": "array",
+            "title": "Recent Transactions"
+          },
+          "audit_events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogResponse"
+            },
+            "type": "array",
+            "title": "Audit Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile",
+          "accounts",
+          "recent_transactions",
+          "audit_events"
+        ],
+        "title": "CustomerDetailResponse"
+      },
       "FraudAlertResponse": {
         "properties": {
           "id": {
@@ -1067,6 +1549,17 @@
             "type": "string",
             "title": "Status"
           },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -1087,6 +1580,30 @@
           "transaction"
         ],
         "title": "FraudAlertResponse"
+      },
+      "FraudAlertUpdateRequest": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "FraudAlertUpdateRequest"
       },
       "FraudAlertsResponse": {
         "properties": {
@@ -1213,6 +1730,19 @@
           "full_name"
         ],
         "title": "ProfileUpdate"
+      },
+      "ReactivateRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "ReactivateRequest"
       },
       "StatementResponse": {
         "properties": {

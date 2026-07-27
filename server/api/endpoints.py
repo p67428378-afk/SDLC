@@ -113,6 +113,40 @@ def require_admin(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 
+def require_system_admin(current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "system_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized (System Admin only)",
+        )
+    return current_user
+
+
+def require_fraud_analyst_or_above(
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role not in ["admin", "system_admin", "fraud_analyst"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized (Fraud Analyst or System Admin only)",
+        )
+    return current_user
+
+
+def require_support_or_above(current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in [
+        "admin",
+        "system_admin",
+        "support_admin",
+        "fraud_analyst",
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized",
+        )
+    return current_user
+
+
 # Auth Endpoints
 @router.post(
     "/auth/register",
@@ -607,7 +641,8 @@ def get_audit_trail(
     event_type: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user: models.User = Depends(require_admin),
+    search: Optional[str] = None,
+    current_user: models.User = Depends(require_system_admin),
     db: Session = Depends(get_db),
 ):
     items, total = crud.get_audit_logs(
@@ -618,6 +653,7 @@ def get_audit_trail(
         event_type=event_type,
         start_date=start_date,
         end_date=end_date,
+        search=search,
     )
     return {
         "items": items,
@@ -631,7 +667,7 @@ def get_fraud_alerts_endpoint(
     skip: int = 0,
     limit: int = 20,
     status: Optional[str] = None,
-    current_user: models.User = Depends(require_admin),
+    current_user: models.User = Depends(require_fraud_analyst_or_above),
     db: Session = Depends(get_db),
 ):
     items, total = crud.get_fraud_alerts(db, skip=skip, limit=limit, status=status)
@@ -649,7 +685,7 @@ def suspend_customer_account(
     accountId: str,
     suspend_data: schemas.SuspendRequest,
     request: Request,
-    current_user: models.User = Depends(require_admin),
+    current_user: models.User = Depends(require_fraud_analyst_or_above),
     db: Session = Depends(get_db),
 ):
     account = crud.get_account_by_id(db, account_id=accountId)
@@ -818,8 +854,381 @@ def export_transactions(
     "/admin/audit-trail/verify", response_model=schemas.AuditTrailVerifyResponse
 )
 def verify_audit_trail(
-    current_user: models.User = Depends(require_admin),
+    current_user: models.User = Depends(require_system_admin),
     db: Session = Depends(get_db),
 ):
     result = crud.verify_audit_chain(db)
     return result
+
+
+@router.get("/admin/audit-trail/export")
+def export_audit_trail(
+    format: str,
+    request: Request,
+    user_id: Optional[str] = None,
+    event_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: models.User = Depends(require_system_admin),
+    db: Session = Depends(get_db),
+):
+    if format != "csv":
+        raise HTTPException(status_code=400, detail="Format must be csv")
+
+    # Fetch all matching audit logs (no pagination)
+    items, _ = crud.get_audit_logs(
+        db,
+        skip=0,
+        limit=1000000,
+        user_id=user_id,
+        event_type=event_type,
+        start_date=start_date,
+        end_date=end_date,
+        search=search,
+    )
+
+    # Log EXPORT_AUDIT audit event
+    log_audit_event(
+        db,
+        current_user.id,
+        "EXPORT_AUDIT",
+        {
+            "user_id_filter": user_id,
+            "event_type_filter": event_type,
+            "start_date_filter": start_date,
+            "end_date_filter": end_date,
+            "search_filter": search,
+            "count": len(items),
+        },
+        request,
+    )
+
+    def sanitize_csv_field(val: Any) -> str:
+        if val is None:
+            return ""
+        s = str(val)
+        if s and s[0] in ("=", "+", "-", "@"):
+            return "'" + s
+        return s
+
+    def generate_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(
+            [
+                "Audit ID",
+                "User ID",
+                "Event Type",
+                "Event Details",
+                "Source IP",
+                "Timestamp",
+                "Previous Hash",
+                "Current Hash",
+            ]
+        )
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        for log in items:
+            import json
+
+            details_str = json.dumps(log.event_details)
+            writer.writerow(
+                [
+                    sanitize_csv_field(log.id),
+                    sanitize_csv_field(log.user_id),
+                    sanitize_csv_field(log.event_type),
+                    sanitize_csv_field(details_str),
+                    sanitize_csv_field(log.source_ip),
+                    sanitize_csv_field(log.timestamp.isoformat()),
+                    sanitize_csv_field(log.previous_hash),
+                    sanitize_csv_field(log.current_hash),
+                ]
+            )
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    return StreamingResponse(
+        generate_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=audit-trail.csv"},
+    )
+
+
+@router.patch(
+    "/admin/fraud-alerts/{alertId}", response_model=schemas.FraudAlertResponse
+)
+def update_fraud_alert_endpoint(
+    alertId: str,
+    alert_data: schemas.FraudAlertUpdateRequest,
+    request: Request,
+    current_user: models.User = Depends(require_fraud_analyst_or_above),
+    db: Session = Depends(get_db),
+):
+    alert = db.query(models.FraudAlert).filter(models.FraudAlert.id == alertId).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Fraud alert not found")
+
+    updated_alert = crud.update_fraud_alert(
+        db, alert_id=alertId, status=alert_data.status, note=alert_data.note
+    )
+
+    # Log audit event
+    event_type = (
+        "RESOLVE_FRAUD_ALERT"
+        if alert_data.status == "resolved"
+        else "DISMISS_FRAUD_ALERT"
+    )
+    if alert_data.status not in ["resolved", "dismissed"]:
+        event_type = "UPDATE_FRAUD_ALERT"
+
+    log_audit_event(
+        db,
+        current_user.id,
+        event_type,
+        {
+            "fraud_alert_id": alertId,
+            "status": alert_data.status,
+            "note": alert_data.note,
+        },
+        request,
+    )
+
+    return updated_alert
+
+
+@router.get("/admin/customers/{userId}", response_model=schemas.CustomerDetailResponse)
+def get_customer_detail(
+    userId: str,
+    request: Request,
+    current_user: models.User = Depends(require_support_or_above),
+    db: Session = Depends(get_db),
+):
+    user = crud.get_user_by_id(db, user_id=userId)
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    accounts = crud.get_accounts_by_user_id(db, user_id=userId)
+
+    # Get recent transactions for all accounts of this user
+    account_ids = [acc.id for acc in accounts]
+    from sqlalchemy import or_
+
+    recent_transactions = []
+    if account_ids:
+        recent_transactions = (
+            db.query(models.Transaction)
+            .filter(
+                or_(
+                    models.Transaction.source_account_id.in_(account_ids),
+                    models.Transaction.destination_account_id.in_(account_ids),
+                )
+            )
+            .order_by(models.Transaction.transaction_date.desc())
+            .limit(50)
+            .all()
+        )
+
+    # Get audit events for this user
+    audit_events = (
+        db.query(models.AuditLog)
+        .filter(models.AuditLog.user_id == userId)
+        .order_by(models.AuditLog.timestamp.desc())
+        .limit(50)
+        .all()
+    )
+
+    log_audit_event(
+        db,
+        current_user.id,
+        "ADMIN_VIEW_CUSTOMER",
+        {"viewed_user_id": userId},
+        request,
+    )
+
+    return {
+        "profile": user,
+        "accounts": accounts,
+        "recent_transactions": recent_transactions,
+        "audit_events": audit_events,
+    }
+
+
+@router.get("/admin/accounts/{accountId}", response_model=schemas.AccountDetailResponse)
+def get_admin_account_detail(
+    accountId: str,
+    request: Request,
+    current_user: models.User = Depends(require_support_or_above),
+    db: Session = Depends(get_db),
+):
+    account = crud.get_account_by_id(db, account_id=accountId)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    owner = crud.get_user_by_id(db, user_id=account.user_id)
+    if not owner:
+        raise HTTPException(status_code=404, detail="Account owner not found")
+
+    from sqlalchemy import or_
+
+    recent_transactions = (
+        db.query(models.Transaction)
+        .filter(
+            or_(
+                models.Transaction.source_account_id == accountId,
+                models.Transaction.destination_account_id == accountId,
+            )
+        )
+        .order_by(models.Transaction.transaction_date.desc())
+        .limit(50)
+        .all()
+    )
+
+    log_audit_event(
+        db,
+        current_user.id,
+        "ADMIN_VIEW_ACCOUNT",
+        {"viewed_account_id": accountId},
+        request,
+    )
+
+    return {
+        "account": account,
+        "owner": owner,
+        "recent_transactions": recent_transactions,
+    }
+
+
+@router.post(
+    "/admin/accounts/{accountId}/reactivate", response_model=schemas.SuspendResponse
+)
+def reactivate_customer_account(
+    accountId: str,
+    reactivate_data: schemas.ReactivateRequest,
+    request: Request,
+    current_user: models.User = Depends(require_fraud_analyst_or_above),
+    db: Session = Depends(get_db),
+):
+    account = crud.get_account_by_id(db, account_id=accountId)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    updated_account = crud.reactivate_account(db, account_id=accountId)
+
+    # Publish event
+    publish_event_sync(
+        f"user:{updated_account.user_id}",
+        {
+            "event": "balance_update",
+            "data": {
+                "account_id": updated_account.id,
+                "balance": float(updated_account.balance),
+                "status": updated_account.status,
+            },
+        },
+    )
+
+    log_audit_event(
+        db,
+        current_user.id,
+        "ADMIN_REACTIVATE_ACCOUNT",
+        {"reactivated_account_id": accountId, "reason": reactivate_data.reason},
+        request,
+    )
+
+    return {
+        "id": updated_account.id,
+        "status": updated_account.status,
+        "updated_at": updated_account.updated_at,
+    }
+
+
+@router.post(
+    "/admin/accounts/{accountId}/close", response_model=schemas.SuspendResponse
+)
+def close_customer_account(
+    accountId: str,
+    close_data: schemas.CloseRequest,
+    request: Request,
+    current_user: models.User = Depends(require_system_admin),
+    db: Session = Depends(get_db),
+):
+    account = crud.get_account_by_id(db, account_id=accountId)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    updated_account = crud.close_account(db, account_id=accountId)
+
+    # Publish event
+    publish_event_sync(
+        f"user:{updated_account.user_id}",
+        {
+            "event": "balance_update",
+            "data": {
+                "account_id": updated_account.id,
+                "balance": float(updated_account.balance),
+                "status": updated_account.status,
+            },
+        },
+    )
+
+    log_audit_event(
+        db,
+        current_user.id,
+        "ADMIN_CLOSE_ACCOUNT",
+        {"closed_account_id": accountId, "reason": close_data.reason},
+        request,
+    )
+
+    return {
+        "id": updated_account.id,
+        "status": updated_account.status,
+        "updated_at": updated_account.updated_at,
+    }
+
+
+@router.get("/admin/summary", response_model=schemas.AdminSummaryResponse)
+def get_admin_summary(
+    request: Request,
+    current_user: models.User = Depends(require_support_or_above),
+    db: Session = Depends(get_db),
+):
+    total_customers = (
+        db.query(models.User).filter(models.User.role == "customer").count()
+    )
+    open_fraud_alerts = (
+        db.query(models.FraudAlert).filter(models.FraudAlert.status == "open").count()
+    )
+    suspended_accounts = (
+        db.query(models.Account).filter(models.Account.status == "suspended").count()
+    )
+
+    now = datetime.utcnow()
+    twenty_four_hours_ago = now - timedelta(hours=24)
+    transactions_24h = (
+        db.query(models.Transaction)
+        .filter(models.Transaction.transaction_date >= twenty_four_hours_ago)
+        .count()
+    )
+
+    verify_result = crud.verify_audit_chain(db)
+    audit_chain_intact = verify_result.get("is_intact", True)
+
+    log_audit_event(
+        db,
+        current_user.id,
+        "ADMIN_VIEW_SUMMARY",
+        {},
+        request,
+    )
+
+    return {
+        "total_customers": total_customers,
+        "open_fraud_alerts": open_fraud_alerts,
+        "suspended_accounts": suspended_accounts,
+        "transactions_24h": transactions_24h,
+        "audit_chain_intact": audit_chain_intact,
+    }

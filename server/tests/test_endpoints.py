@@ -405,3 +405,192 @@ def test_sse_stream_endpoint(client: TestClient):
         assert 'data: {"event": "test", "data": {}}' in response.text
     finally:
         broker.subscribe = original_subscribe
+
+
+def test_tiered_admin_rbac_and_new_endpoints(client: TestClient, db_session):
+    from server.models import User, Account, FraudAlert
+    from server.database import get_password_hash
+    import uuid
+
+    # Create tiered admin users
+    support_user = User(
+        id=str(uuid.uuid4()),
+        username="supportuser",
+        email="support@example.com",
+        hashed_password=get_password_hash("supportpassword"),
+        full_name="Support User",
+        role="support_admin",
+        is_active=True,
+    )
+    analyst_user = User(
+        id=str(uuid.uuid4()),
+        username="analystuser",
+        email="analyst@example.com",
+        hashed_password=get_password_hash("analystpassword"),
+        full_name="Analyst User",
+        role="fraud_analyst",
+        is_active=True,
+    )
+    sysadmin_user = User(
+        id=str(uuid.uuid4()),
+        username="sysadminuser",
+        email="sysadmin@example.com",
+        hashed_password=get_password_hash("sysadminpassword"),
+        full_name="SysAdmin User",
+        role="system_admin",
+        is_active=True,
+    )
+    db_session.add_all([support_user, analyst_user, sysadmin_user])
+    db_session.commit()
+
+    # Login helper
+    def get_token(username, password):
+        resp = client.post(
+            "/api/v1/banking/auth/login",
+            json={"username": username, "password": password},
+        )
+        return resp.json()["access_token"]
+
+    support_token = get_token("supportuser", "supportpassword")
+    analyst_token = get_token("analystuser", "analystpassword")
+    sysadmin_token = get_token("sysadminuser", "sysadminpassword")
+
+    support_headers = {"Authorization": f"Bearer {support_token}"}
+    analyst_headers = {"Authorization": f"Bearer {analyst_token}"}
+    sysadmin_headers = {"Authorization": f"Bearer {sysadmin_token}"}
+
+    # 1. Test GET /admin/summary
+    # Support admin should be able to access
+    resp = client.get("/api/v1/banking/admin/summary", headers=support_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "total_customers" in data
+    assert "open_fraud_alerts" in data
+    assert "suspended_accounts" in data
+    assert "transactions_24h" in data
+    assert "audit_chain_intact" in data
+
+    # 2. Test GET /admin/audit-trail with search
+    # Support admin should NOT be able to access (restricted to system_admin)
+    resp = client.get("/api/v1/banking/admin/audit-trail", headers=support_headers)
+    assert resp.status_code == 403
+
+    # Sysadmin should be able to access
+    resp = client.get(
+        "/api/v1/banking/admin/audit-trail?search=USER_LOGIN", headers=sysadmin_headers
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "items" in data
+
+    # 3. Test GET /admin/audit-trail/export
+    # Support admin should NOT be able to access
+    resp = client.get(
+        "/api/v1/banking/admin/audit-trail/export?format=csv", headers=support_headers
+    )
+    assert resp.status_code == 403
+
+    # Sysadmin should be able to access
+    resp = client.get(
+        "/api/v1/banking/admin/audit-trail/export?format=csv", headers=sysadmin_headers
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "text/csv; charset=utf-8"
+    assert "Audit ID" in resp.text
+
+    # 4. Test PATCH /admin/fraud-alerts/{alertId}
+    # Get a fraud alert ID
+    alert = db_session.query(FraudAlert).first()
+    assert alert is not None
+
+    # Support admin should NOT be able to update fraud alert
+    resp = client.patch(
+        f"/api/v1/banking/admin/fraud-alerts/{alert.id}",
+        json={"status": "resolved", "note": "Resolved by test"},
+        headers=support_headers,
+    )
+    assert resp.status_code == 403
+
+    # Analyst should be able to update fraud alert
+    resp = client.patch(
+        f"/api/v1/banking/admin/fraud-alerts/{alert.id}",
+        json={"status": "resolved", "note": "Resolved by analyst"},
+        headers=analyst_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "resolved"
+    assert resp.json()["note"] == "Resolved by analyst"
+
+    # 5. Test Customer Drill-Down
+    # Get a customer ID
+    customer = db_session.query(User).filter(User.role == "customer").first()
+    assert customer is not None
+
+    # Support admin should be able to view customer detail
+    resp = client.get(
+        f"/api/v1/banking/admin/customers/{customer.id}", headers=support_headers
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["profile"]["id"] == customer.id
+    assert "accounts" in data
+    assert "recent_transactions" in data
+    assert "audit_events" in data
+
+    # Get an account ID
+    account = db_session.query(Account).filter(Account.user_id == customer.id).first()
+    assert account is not None
+
+    # Support admin should be able to view account detail
+    resp = client.get(
+        f"/api/v1/banking/admin/accounts/{account.id}", headers=support_headers
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["account"]["id"] == account.id
+    assert data["owner"]["id"] == customer.id
+    assert "recent_transactions" in data
+
+    # 6. Test Account Lifecycle Management (Reactivate and Close)
+    # Suspend account first (Analyst can do this)
+    resp = client.post(
+        f"/api/v1/banking/admin/accounts/{account.id}/suspend",
+        json={"reason": "Suspicious activity"},
+        headers=analyst_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "suspended"
+
+    # Support admin should NOT be able to reactivate
+    resp = client.post(
+        f"/api/v1/banking/admin/accounts/{account.id}/reactivate",
+        json={"reason": "Reactivating"},
+        headers=support_headers,
+    )
+    assert resp.status_code == 403
+
+    # Analyst should be able to reactivate
+    resp = client.post(
+        f"/api/v1/banking/admin/accounts/{account.id}/reactivate",
+        json={"reason": "Reactivating"},
+        headers=analyst_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"
+
+    # Analyst should NOT be able to close
+    resp = client.post(
+        f"/api/v1/banking/admin/accounts/{account.id}/close",
+        json={"reason": "Closing"},
+        headers=analyst_headers,
+    )
+    assert resp.status_code == 403
+
+    # Sysadmin should be able to close
+    resp = client.post(
+        f"/api/v1/banking/admin/accounts/{account.id}/close",
+        json={"reason": "Closing"},
+        headers=sysadmin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "closed"

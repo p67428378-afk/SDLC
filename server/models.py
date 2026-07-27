@@ -135,6 +135,7 @@ class FraudAlert(Base):
     rule_triggered = Column(String(255), nullable=False)
     risk_score = Column(Integer, nullable=False)
     status = Column(String(50), nullable=False, default="open")
+    note = Column(String(1024), nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(

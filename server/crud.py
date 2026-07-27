@@ -141,6 +141,26 @@ def suspend_account(db: Session, account_id: str) -> Account:
     return db_account
 
 
+def reactivate_account(db: Session, account_id: str) -> Account:
+    db_account = get_account_by_id(db, account_id)
+    if db_account:
+        db_account.status = "active"
+        db_account.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_account)
+    return db_account
+
+
+def close_account(db: Session, account_id: str) -> Account:
+    db_account = get_account_by_id(db, account_id)
+    if db_account:
+        db_account.status = "closed"
+        db_account.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_account)
+    return db_account
+
+
 # Statement CRUD
 def get_statements_by_account_id(db: Session, account_id: str):
     return db.query(Statement).filter(Statement.account_id == account_id).all()
@@ -299,6 +319,7 @@ def get_audit_logs(
     event_type: str = None,
     start_date: str = None,
     end_date: str = None,
+    search: str = None,
 ):
     query = db.query(AuditLog)
 
@@ -321,6 +342,18 @@ def get_audit_logs(
             query = query.filter(AuditLog.timestamp <= end_dt)
         except ValueError:
             pass
+
+    if search:
+        from sqlalchemy import cast, String
+
+        query = query.filter(
+            or_(
+                AuditLog.user_id.ilike(f"%{search}%"),
+                AuditLog.event_type.ilike(f"%{search}%"),
+                AuditLog.source_ip.ilike(f"%{search}%"),
+                cast(AuditLog.event_details, String).ilike(f"%{search}%"),
+            )
+        )
 
     total = query.count()
     items = query.order_by(AuditLog.timestamp.desc()).offset(skip).limit(limit).all()
@@ -352,4 +385,18 @@ def create_fraud_alert(
     db.add(db_alert)
     db.commit()
     db.refresh(db_alert)
+    return db_alert
+
+
+def update_fraud_alert(
+    db: Session, alert_id: str, status: str, note: str = None
+) -> FraudAlert:
+    db_alert = db.query(FraudAlert).filter(FraudAlert.id == alert_id).first()
+    if db_alert:
+        db_alert.status = status
+        if note is not None:
+            db_alert.note = note
+        db_alert.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_alert)
     return db_alert

@@ -167,6 +167,7 @@ class FraudAlertResponse(BaseModel):
     rule_triggered: str
     risk_score: int
     status: str
+    note: Optional[str] = None
     created_at: datetime
     transaction: TransactionMinResponse
 
@@ -189,3 +190,37 @@ class SuspendResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ReactivateRequest(BaseModel):
+    reason: str
+
+
+class CloseRequest(BaseModel):
+    reason: str
+
+
+class FraudAlertUpdateRequest(BaseModel):
+    status: str
+    note: Optional[str] = None
+
+
+class AdminSummaryResponse(BaseModel):
+    total_customers: int
+    open_fraud_alerts: int
+    suspended_accounts: int
+    transactions_24h: int
+    audit_chain_intact: bool
+
+
+class CustomerDetailResponse(BaseModel):
+    profile: UserResponse
+    accounts: List[AccountResponse]
+    recent_transactions: List[TransactionResponse]
+    audit_events: List[AuditLogResponse]
+
+
+class AccountDetailResponse(BaseModel):
+    account: AccountResponse
+    owner: UserResponse
+    recent_transactions: List[TransactionResponse]
