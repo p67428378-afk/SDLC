@@ -120,6 +120,8 @@ def login(
     login_data: schemas.UserLogin, request: Request, db: Session = Depends(get_db)
 ):
     user = crud.get_user_by_username(db, username=login_data.username)
+    if not user:
+        user = crud.get_user_by_email(db, email=login_data.username)
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 

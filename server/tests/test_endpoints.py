@@ -44,6 +44,16 @@ def test_login_success(client: TestClient):
     assert data["user"]["username"] == "testuser"
 
 
+def test_login_with_email_success(client: TestClient):
+    payload = {"username": "test@example.com", "password": "testpassword"}
+    response = client.post("/api/v1/banking/auth/login", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    assert data["user"]["username"] == "testuser"
+
+
 def test_login_invalid_credentials(client: TestClient):
     payload = {"username": "testuser", "password": "wrongpassword"}
     response = client.post("/api/v1/banking/auth/login", json=payload)
