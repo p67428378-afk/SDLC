@@ -80,6 +80,22 @@ export const bankingAPI = {
     const response = await api.post("/api/v1/banking/transfers", data);
     return response.data;
   },
+  exportTransactions: async (accountId, params = {}) => {
+    const response = await api.get(
+      `/api/v1/banking/accounts/${accountId}/transactions/export`,
+      {
+        params: { ...params, format: "csv" },
+        responseType: "blob",
+      },
+    );
+    return response.data;
+  },
+  downloadStatement: async (filename) => {
+    const response = await api.get(`/api/v1/banking/statements/${filename}`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
 };
 
 export const adminAPI = {
@@ -100,6 +116,10 @@ export const adminAPI = {
       `/api/v1/banking/admin/accounts/${accountId}/suspend`,
       { reason },
     );
+    return response.data;
+  },
+  verifyAuditTrail: async () => {
+    const response = await api.get("/api/v1/banking/admin/audit-trail/verify");
     return response.data;
   },
 };
