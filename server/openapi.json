@@ -723,6 +723,150 @@
         }
       }
     },
+    "/api/v1/banking/stream": {
+      "get": {
+        "summary": "Stream Events",
+        "operationId": "stream_events_api_v1_banking_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/accounts/{accountId}/transactions/export": {
+      "get": {
+        "summary": "Export Transactions",
+        "operationId": "export_transactions_api_v1_banking_accounts__accountId__transactions_export_get",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Accountid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/admin/audit-trail/verify": {
+      "get": {
+        "summary": "Verify Audit Trail",
+        "operationId": "verify_audit_trail_api_v1_banking_admin_audit_trail_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditTrailVerifyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -811,6 +955,21 @@
             "type": "string",
             "format": "date-time",
             "title": "Timestamp"
+          },
+          "previous_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Hash"
+          },
+          "current_hash": {
+            "type": "string",
+            "title": "Current Hash"
           }
         },
         "type": "object",
@@ -820,7 +979,8 @@
           "event_type",
           "event_details",
           "source_ip",
-          "timestamp"
+          "timestamp",
+          "current_hash"
         ],
         "title": "AuditLogResponse"
       },
@@ -849,6 +1009,41 @@
           "total"
         ],
         "title": "AuditTrailResponse"
+      },
+      "AuditTrailVerifyResponse": {
+        "properties": {
+          "is_intact": {
+            "type": "boolean",
+            "title": "Is Intact"
+          },
+          "first_tampered_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Tampered Record Id"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_intact"
+        ],
+        "title": "AuditTrailVerifyResponse"
       },
       "FraudAlertResponse": {
         "properties": {

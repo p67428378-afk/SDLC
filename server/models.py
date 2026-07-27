@@ -121,6 +121,8 @@ class AuditLog(Base):
     event_details = Column(JSON, nullable=False)
     source_ip = Column(String(50), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    previous_hash = Column(String(64), nullable=True)
+    current_hash = Column(String(64), nullable=False, unique=True)
 
 
 class FraudAlert(Base):

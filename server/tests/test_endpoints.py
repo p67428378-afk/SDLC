@@ -312,3 +312,96 @@ def test_admin_suspend_account(client: TestClient):
     )
     assert transfer_response.status_code == 400
     assert "suspended" in transfer_response.json()["detail"]
+
+
+def test_admin_audit_trail_verify(client: TestClient):
+    # Login as admin
+    login_response = client.post(
+        "/api/v1/banking/auth/login",
+        json={"username": "adminuser", "password": "adminpassword"},
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Verify audit trail
+    response = client.get("/api/v1/banking/admin/audit-trail/verify", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "is_intact" in data
+    assert data["is_intact"] is True
+
+
+def test_export_transactions_csv(client: TestClient):
+    # Login as customer
+    login_response = client.post(
+        "/api/v1/banking/auth/login",
+        json={"username": "testuser", "password": "testpassword"},
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Get checking account ID
+    accounts_response = client.get("/api/v1/banking/accounts", headers=headers)
+    checking_id = [
+        acc["id"]
+        for acc in accounts_response.json()
+        if acc["account_type"] == "checking"
+    ][0]
+
+    # Export CSV
+    response = client.get(
+        f"/api/v1/banking/accounts/{checking_id}/transactions/export?format=csv",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/csv; charset=utf-8"
+    content = response.text
+    assert "Transaction ID" in content
+    assert "Source Account" in content
+
+
+def test_download_genuine_pdf_statement(client: TestClient):
+    # Login as customer
+    login_response = client.post(
+        "/api/v1/banking/auth/login",
+        json={"username": "testuser", "password": "testpassword"},
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Download statement
+    response = client.get(
+        "/api/v1/banking/statements/statement_2026_07.pdf",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    # PDF header bytes
+    assert response.content.startswith(b"%PDF")
+
+
+def test_sse_stream_endpoint(client: TestClient):
+    # Login as customer
+    login_response = client.post(
+        "/api/v1/banking/auth/login",
+        json={"username": "testuser", "password": "testpassword"},
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Mock broker.subscribe to yield a single message and exit
+    async def mock_subscribe(channels):
+        yield '{"event": "test", "data": {}}'
+
+    from server.utils.broker import broker
+
+    original_subscribe = broker.subscribe
+    broker.subscribe = mock_subscribe
+
+    try:
+        response = client.get("/api/v1/banking/stream", headers=headers)
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+        assert 'data: {"event": "test", "data": {}}' in response.text
+    finally:
+        broker.subscribe = original_subscribe

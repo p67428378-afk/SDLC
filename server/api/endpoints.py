@@ -3,12 +3,37 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Any
 import os
 import io
+import re
+import csv
+import asyncio
 
 from server.database import get_db, verify_password
 from server import crud, schemas, models
+from server.utils.broker import broker, publish_event_sync
+from server.utils.pdf import generate_pdf_statement
+
+
+async def sse_generator(user_id: str, is_admin: bool):
+    channels = [f"user:{user_id}"]
+    if is_admin:
+        channels.append("admin")
+
+    subscription = broker.subscribe(channels)
+    try:
+        while True:
+            try:
+                message = await asyncio.wait_for(subscription.__anext__(), timeout=15.0)
+                yield f"data: {message}\n\n"
+            except StopAsyncIteration:
+                break
+            except asyncio.TimeoutError:
+                yield ": ping\n\n"
+    except asyncio.CancelledError:
+        pass
+
 
 router = APIRouter(prefix="/api/v1/banking")
 
@@ -226,8 +251,99 @@ def download_statement(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Return a mock PDF file
-    pdf_content = b"%PDF-1.4\n%Mock Statement Content for " + filename.encode("utf-8")
+    match = re.search(r"(\d{4})[-_](\d{2})", filename)
+    if not match:
+        raise HTTPException(status_code=400, detail="Invalid statement filename format")
+    year, month = match.groups()
+    statement_period = f"{year}-{month}"
+
+    statement = (
+        db.query(models.Statement)
+        .filter(models.Statement.file_name == filename)
+        .first()
+    )
+    if not statement:
+        accounts = crud.get_accounts_by_user_id(db, user_id=current_user.id)
+        if not accounts:
+            raise HTTPException(status_code=404, detail="Statement not found")
+        account = accounts[0]
+    else:
+        account = crud.get_account_by_id(db, account_id=statement.account_id)
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+
+    if account.user_id != current_user.id and current_user.role not in [
+        "admin",
+        "system_admin",
+        "support_admin",
+    ]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    start_of_month = datetime(int(year), int(month), 1)
+    end_of_month = (
+        datetime(int(year) + 1, 1, 1)
+        if int(month) == 12
+        else datetime(int(year), int(month) + 1, 1)
+    )
+
+    from sqlalchemy import or_
+
+    future_transactions = (
+        db.query(models.Transaction)
+        .filter(
+            models.Transaction.transaction_date >= start_of_month,
+            or_(
+                models.Transaction.source_account_id == account.id,
+                models.Transaction.destination_account_id == account.id,
+            ),
+        )
+        .all()
+    )
+
+    current_balance = float(account.balance)
+    balance_at_start = current_balance
+    for t in future_transactions:
+        if t.status != "Completed":
+            continue
+        if t.source_account_id == account.id:
+            balance_at_start += float(t.amount)
+        elif t.destination_account_id == account.id:
+            balance_at_start -= float(t.amount)
+
+    statement_transactions = (
+        db.query(models.Transaction)
+        .filter(
+            models.Transaction.transaction_date >= start_of_month,
+            models.Transaction.transaction_date < end_of_month,
+            or_(
+                models.Transaction.source_account_id == account.id,
+                models.Transaction.destination_account_id == account.id,
+            ),
+        )
+        .order_by(models.Transaction.transaction_date.asc())
+        .all()
+    )
+
+    opening_balance = balance_at_start
+    closing_balance = opening_balance
+    for t in statement_transactions:
+        if t.status != "Completed":
+            continue
+        if t.source_account_id == account.id:
+            closing_balance -= float(t.amount)
+        elif t.destination_account_id == account.id:
+            closing_balance += float(t.amount)
+
+    pdf_content = generate_pdf_statement(
+        account_id=account.id,
+        account_holder=account.user.full_name,
+        account_number=account.account_number,
+        statement_period=statement_period,
+        opening_balance=opening_balance,
+        closing_balance=closing_balance,
+        transactions=statement_transactions,
+    )
+
     log_audit_event(
         db, current_user.id, "DOWNLOAD_STATEMENT", {"filename": filename}, request
     )
@@ -366,6 +482,12 @@ def transfer_funds(
             status_code=400, detail="Insufficient funds or invalid destination account"
         )
 
+    if destination_account.user_id != current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Transfers to external payees are not supported in this version",
+        )
+
     if destination_account.status == "suspended":
         raise HTTPException(status_code=400, detail="Destination account is suspended")
 
@@ -390,13 +512,67 @@ def transfer_funds(
         status="Completed",
     )
 
+    # Publish events
+    tx_data = {
+        "id": transaction.id,
+        "source_account_id": transaction.source_account_id,
+        "destination_account_id": transaction.destination_account_id,
+        "amount": float(transaction.amount),
+        "type": transaction.type,
+        "description": transaction.description,
+        "status": transaction.status,
+        "transaction_date": transaction.transaction_date.isoformat(),
+    }
+    publish_event_sync(
+        f"user:{source_account.user_id}", {"event": "new_transaction", "data": tx_data}
+    )
+    publish_event_sync(
+        f"user:{source_account.user_id}",
+        {
+            "event": "balance_update",
+            "data": {
+                "account_id": source_account.id,
+                "balance": float(source_account.balance),
+            },
+        },
+    )
+    publish_event_sync(
+        f"user:{destination_account.user_id}",
+        {"event": "new_transaction", "data": tx_data},
+    )
+    publish_event_sync(
+        f"user:{destination_account.user_id}",
+        {
+            "event": "balance_update",
+            "data": {
+                "account_id": destination_account.id,
+                "balance": float(destination_account.balance),
+            },
+        },
+    )
+
     # Check for potential fraud (e.g., amount >= 10000)
     if transfer_data.amount >= 10000.00:
-        crud.create_fraud_alert(
+        alert = crud.create_fraud_alert(
             db,
             transaction_id=transaction.id,
             rule_triggered="Large Transaction Amount",
             risk_score=85,
+        )
+        # Publish fraud alert to admins
+        publish_event_sync(
+            "admin",
+            {
+                "event": "new_fraud_alert",
+                "data": {
+                    "id": alert.id,
+                    "transaction_id": alert.transaction_id,
+                    "rule_triggered": alert.rule_triggered,
+                    "risk_score": alert.risk_score,
+                    "status": alert.status,
+                    "created_at": alert.created_at.isoformat(),
+                },
+            },
         )
         log_audit_event(
             db,
@@ -482,6 +658,19 @@ def suspend_customer_account(
 
     updated_account = crud.suspend_account(db, account_id=accountId)
 
+    # Publish event
+    publish_event_sync(
+        f"user:{updated_account.user_id}",
+        {
+            "event": "balance_update",
+            "data": {
+                "account_id": updated_account.id,
+                "balance": float(updated_account.balance),
+                "status": updated_account.status,
+            },
+        },
+    )
+
     # Also suspend the user associated with the account to block login if needed,
     # or just suspend the account. The requirement says: "have the power to temporarily block or suspend the source account to avoid any malicious activity to occur."
     # Let's also log this administrative action
@@ -498,3 +687,139 @@ def suspend_customer_account(
         "status": updated_account.status,
         "updated_at": updated_account.updated_at,
     }
+
+
+@router.get("/stream")
+async def stream_events(
+    request: Request,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    is_admin = current_user.role in [
+        "admin",
+        "system_admin",
+        "support_admin",
+        "fraud_analyst",
+    ]
+    return StreamingResponse(
+        sse_generator(current_user.id, is_admin),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/accounts/{accountId}/transactions/export")
+def export_transactions(
+    accountId: str,
+    format: str,
+    request: Request,
+    search: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    type: Optional[str] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if format != "csv":
+        raise HTTPException(status_code=400, detail="Format must be csv")
+
+    account = crud.get_account_by_id(db, account_id=accountId)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if account.user_id != current_user.id and current_user.role not in [
+        "admin",
+        "system_admin",
+        "support_admin",
+    ]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    transactions = crud.get_all_transactions_by_account_id(
+        db,
+        account_id=accountId,
+        search=search,
+        start_date=start_date,
+        end_date=end_date,
+        type=type,
+    )
+
+    # Log EXPORT_TRANSACTIONS audit event
+    log_audit_event(
+        db,
+        current_user.id,
+        "EXPORT_TRANSACTIONS",
+        {"account_id": accountId, "count": len(transactions)},
+        request,
+    )
+
+    def sanitize_csv_field(val: Any) -> str:
+        if val is None:
+            return ""
+        s = str(val)
+        if s and s[0] in ("=", "+", "-", "@"):
+            return "'" + s
+        return s
+
+    def generate_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(
+            [
+                "Transaction ID",
+                "Source Account",
+                "Destination Account",
+                "Amount",
+                "Type",
+                "Description",
+                "Status",
+                "Date",
+            ]
+        )
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        for t in transactions:
+            writer.writerow(
+                [
+                    sanitize_csv_field(t.id),
+                    sanitize_csv_field(
+                        t.source_account.account_number if t.source_account else ""
+                    ),
+                    sanitize_csv_field(
+                        t.destination_account.account_number
+                        if t.destination_account
+                        else ""
+                    ),
+                    sanitize_csv_field(t.amount),
+                    sanitize_csv_field(t.type),
+                    sanitize_csv_field(t.description),
+                    sanitize_csv_field(t.status),
+                    sanitize_csv_field(t.transaction_date.isoformat()),
+                ]
+            )
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    return StreamingResponse(
+        generate_csv(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=transactions-{accountId}.csv"
+        },
+    )
+
+
+@router.get(
+    "/admin/audit-trail/verify", response_model=schemas.AuditTrailVerifyResponse
+)
+def verify_audit_trail(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    result = crud.verify_audit_chain(db)
+    return result

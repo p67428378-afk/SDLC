@@ -5,6 +5,7 @@ import os
 
 from server.database import init_db, seed_data, SessionLocal
 from server.api.endpoints import router as banking_router
+from server.utils.broker import broker
 
 
 @asynccontextmanager
@@ -16,6 +17,8 @@ async def lifespan(app: FastAPI):
         seed_data(db)
     finally:
         db.close()
+    # Connect event broker
+    await broker.connect()
     yield
 
 
@@ -40,6 +43,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Security Headers Middleware (Enforces HTTPS/TLS and secure browser behavior)
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
 
 # Include routers
 app.include_router(banking_router)

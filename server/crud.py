@@ -1,9 +1,63 @@
 import uuid
+import hashlib
+import json
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from server.models import User, Account, Transaction, Statement, AuditLog, FraudAlert
 from server.database import get_password_hash
+
+
+def calculate_audit_hash(
+    user_id: str,
+    event_type: str,
+    event_details: dict,
+    source_ip: str,
+    timestamp: datetime,
+    previous_hash: str,
+) -> str:
+    timestamp_str = timestamp.isoformat()
+    details_str = json.dumps(event_details, sort_keys=True)
+    payload = f"{user_id}|{event_type}|{details_str}|{source_ip}|{timestamp_str}|{previous_hash or ''}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def get_all_transactions_by_account_id(
+    db: Session,
+    account_id: str,
+    search: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    type: str = None,
+):
+    query = db.query(Transaction).filter(
+        or_(
+            Transaction.source_account_id == account_id,
+            Transaction.destination_account_id == account_id,
+        )
+    )
+
+    if search:
+        query = query.filter(Transaction.description.ilike(f"%{search}%"))
+
+    if type:
+        query = query.filter(Transaction.type == type)
+
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            query = query.filter(Transaction.transaction_date >= start_dt)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date)
+            query = query.filter(Transaction.transaction_date <= end_dt)
+        except ValueError:
+            pass
+
+    return query.order_by(Transaction.transaction_date.desc()).all()
 
 
 # User CRUD
@@ -169,18 +223,72 @@ def create_transaction(
 def create_audit_log(
     db: Session, user_id: str, event_type: str, event_details: dict, source_ip: str
 ) -> AuditLog:
+    # Concurrency control: serialize write operations to audit_log
+    if db.bind.dialect.name == "postgresql":
+        db.execute(text("LOCK TABLE audit_log IN EXCLUSIVE MODE"))
+
+    # Get the most recent audit log entry
+    last_log = (
+        db.query(AuditLog)
+        .order_by(AuditLog.timestamp.desc(), AuditLog.id.desc())
+        .first()
+    )
+    previous_hash = last_log.current_hash if last_log else None
+
+    timestamp = datetime.utcnow()
+    current_hash = calculate_audit_hash(
+        user_id=user_id,
+        event_type=event_type,
+        event_details=event_details,
+        source_ip=source_ip,
+        timestamp=timestamp,
+        previous_hash=previous_hash,
+    )
+
     db_log = AuditLog(
         id=str(uuid.uuid4()),
         user_id=user_id,
         event_type=event_type,
         event_details=event_details,
         source_ip=source_ip,
-        timestamp=datetime.utcnow(),
+        timestamp=timestamp,
+        previous_hash=previous_hash,
+        current_hash=current_hash,
     )
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
     return db_log
+
+
+def verify_audit_chain(db: Session):
+    logs = (
+        db.query(AuditLog).order_by(AuditLog.timestamp.asc(), AuditLog.id.asc()).all()
+    )
+    expected_prev_hash = None
+    for log in logs:
+        if log.previous_hash != expected_prev_hash:
+            return {
+                "is_intact": False,
+                "first_tampered_record_id": log.id,
+                "details": f"Record {log.id} previous_hash mismatch. Expected {expected_prev_hash}, got {log.previous_hash}",
+            }
+        calculated_hash = calculate_audit_hash(
+            user_id=log.user_id,
+            event_type=log.event_type,
+            event_details=log.event_details,
+            source_ip=log.source_ip,
+            timestamp=log.timestamp,
+            previous_hash=log.previous_hash,
+        )
+        if log.current_hash != calculated_hash:
+            return {
+                "is_intact": False,
+                "first_tampered_record_id": log.id,
+                "details": f"Record {log.id} current_hash mismatch. Calculated {calculated_hash}, got {log.current_hash}",
+            }
+        expected_prev_hash = log.current_hash
+    return {"is_intact": True, "first_tampered_record_id": None, "details": None}
 
 
 def get_audit_logs(

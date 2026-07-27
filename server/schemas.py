@@ -134,8 +134,16 @@ class AuditLogResponse(BaseModel):
     event_details: Any
     source_ip: str
     timestamp: datetime
+    previous_hash: Optional[str] = None
+    current_hash: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AuditTrailVerifyResponse(BaseModel):
+    is_intact: bool
+    first_tampered_record_id: Optional[str] = None
+    details: Optional[str] = None
 
 
 class AuditTrailResponse(BaseModel):
